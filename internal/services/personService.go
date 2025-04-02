@@ -138,22 +138,19 @@ func (ps *PersonService) GetPersonsByParams(filters dto.Filters) ([]models.Perso
 	return ps.PersonRepo.GetPersonsByParams(filter)
 }
 
-func (ps *PersonService) CreatePerson(person *models.Person) (int, error) {
+func (ps *PersonService) CreatePerson(person *dto.CreatePerson) (int, error) {
 	for _, r := range person.Name {
 		if !unicode.Is(unicode.Latin, r) {
 			return 0, fmt.Errorf("name must be latin")
 		}
 	}
-	userData, err := getPersonData(person.Name)
+	userData, err := getPersonData(person)
 	if err != nil {
 		return 0, err
 	}
 	ps.Log.Debug("get person data from api", slog.Any("person data", userData))
-	person.Age = userData.Age
-	person.Gender = userData.Gender
-	person.Nationality = userData.Nationality
 
-	return ps.PersonRepo.CreatePerson(person)
+	return ps.PersonRepo.CreatePerson(userData)
 }
 
 func (ps *PersonService) DeletePersonById(id int) error {
@@ -195,34 +192,34 @@ func (ps *PersonService) UpdatePerson(personDTO *dto.PersonUpdate) error {
 	return ps.PersonRepo.UpdatePerson(person)
 }
 
-func getPersonData(name string) (*userData, error) {
+func getPersonData(createdData *dto.CreatePerson) (*models.Person, error) {
 
 	// TODO Добавить контекст с дедлайном, чтобы если какой-то из сервисов упадёт и я не смогу к нему достучаться - не зависнуть навечно
-	userData := userData{}
-	resp, err := http.Get(fmt.Sprintf(apiGetAge, name))
+	person := models.Person{Name: createdData.Name, Surname: createdData.Surname, Patronymic: createdData.Patronymic}
+	resp, err := http.Get(fmt.Sprintf(apiGetAge, person.Name))
 
 	if err == nil {
 		var data struct {
 			Age int `json:"age"`
 		}
 		json.NewDecoder(resp.Body).Decode(&data)
-		userData.Age = data.Age
+		person.Age = data.Age
 	} else {
 		return nil, fmt.Errorf("сannot get age")
 	}
 
-	resp, err = http.Get(fmt.Sprintf(apiGetGender, name))
+	resp, err = http.Get(fmt.Sprintf(apiGetGender, person.Name))
 	if err == nil {
 		var data struct {
 			Gender string `json:"gender"`
 		}
 		json.NewDecoder(resp.Body).Decode(&data)
-		userData.Gender = data.Gender
+		person.Gender = data.Gender
 	} else {
 		return nil, fmt.Errorf("сannot get gender")
 	}
 
-	resp, err = http.Get(fmt.Sprintf(apiGetNationality, name))
+	resp, err = http.Get(fmt.Sprintf(apiGetNationality, person.Name))
 	if err == nil {
 		var data struct {
 			Country []struct {
@@ -231,10 +228,10 @@ func getPersonData(name string) (*userData, error) {
 		}
 		json.NewDecoder(resp.Body).Decode(&data)
 		if len(data.Country) > 0 {
-			userData.Nationality = data.Country[0].CountryID
+			person.Nationality = data.Country[0].CountryID
 		}
 	} else {
 		return nil, fmt.Errorf("сannot get nationality")
 	}
-	return &userData, nil
+	return &person, nil
 }

@@ -18,11 +18,13 @@ import (
 )
 
 // TODO Добавить адекватные информативные ошибки, а то щас какая-то тотал хуйня
-// TODO Добавить логи
-// TODO Потестить лимиты и оффсеты
-// TODO Потестить код в целом
-// TODO Добавить сваггер
 
+// @title EffectiveMobile API
+// @version 1.0
+// @description API для обогащений пользовательских данных
+// @host localhost:8083
+// @BasePath /
+// @schemes http
 func main() {
 
 	cfg, err := config.MustLoad()
@@ -63,7 +65,7 @@ func main() {
 	ps := &services.PersonService{PersonRepo: pr, Log: log}
 	ph := handlers.PersonHandler{PersonService: ps, Log: log}
 
-	ph.Register(router)
+	ph.Register(router, fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort))
 
 	err = http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort), router)
 	if err != nil {

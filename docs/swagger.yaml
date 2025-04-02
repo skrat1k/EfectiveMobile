@@ -1,0 +1,234 @@
+basePath: /
+definitions:
+  dto.CreatePerson:
+    properties:
+      name:
+        type: string
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
+  dto.PersonUpdate:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      nationality:
+        type: string
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
+  models.Person:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      nationality:
+        type: string
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
+host: localhost:8083
+info:
+  contact: {}
+  description: API для обогащений пользовательских данных
+  title: EffectiveMobile API
+  version: "1.0"
+paths:
+  /api/v1/person/create:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя с переданными данными
+      parameters:
+      - description: Данные пользователя для создания
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePerson'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID нового пользователя
+          schema:
+            type: integer
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "500":
+          description: Failed to create person
+          schema:
+            type: string
+      summary: Создание нового пользователя
+      tags:
+      - person
+  /api/v1/person/delete/{id}:
+    delete:
+      description: Удаляет пользователя по переданному ID
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User successfully deleted
+          schema:
+            type: string
+        "400":
+          description: Invalid ID
+          schema:
+            type: string
+        "500":
+          description: Failed to delete person
+          schema:
+            type: string
+      summary: Удаление пользователя по ID
+      tags:
+      - person
+  /api/v1/person/get:
+    get:
+      description: |-
+        Возвращает отфильтрованные данные о людях
+        Операторы для фильтрации значений:
+        - `is:X` — значение равно X
+        - `isnt:X` — значение не равно X
+        - `ls:X` — значение меньше X (только для age)
+        - `mt:X` — значение больше X (только для age)
+        - Пример:
+        - `age=mt:X` — значение больше X
+        - `name=is:X` — значение равно X
+      parameters:
+      - description: Имя пользователя
+        in: query
+        name: name
+        type: string
+      - description: Фамилия пользователя
+        in: query
+        name: surname
+        type: string
+      - description: Отчество пользователя
+        in: query
+        name: patronymic
+        type: string
+      - description: Пол пользователя
+        in: query
+        name: gender
+        type: string
+      - description: Национальность пользователя
+        in: query
+        name: nationality
+        type: string
+      - description: Возраст пользователя
+        in: query
+        name: age
+        type: integer
+      - description: Лимит записей (по умолчанию 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение записей
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Person'
+            type: array
+        "400":
+          description: Invalid request parameters
+          schema:
+            type: string
+        "500":
+          description: Failed to get persons
+          schema:
+            type: string
+      summary: Получение отфильтрованной информации о людях
+      tags:
+      - person
+  /api/v1/person/get/{id}:
+    get:
+      description: Возвращает данные о человеке по его идентификатору
+      parameters:
+      - description: ID человека
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Person'
+        "400":
+          description: Invalid ID
+          schema:
+            type: string
+        "500":
+          description: Failed to get person
+          schema:
+            type: string
+      summary: Получение информации о человеке по ID
+      tags:
+      - person
+  /api/v1/person/update:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные пользователя с переданными новыми данными
+      parameters:
+      - description: Новые данные пользователя
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PersonUpdate'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User successfully updated
+          schema:
+            type: string
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "500":
+          description: Failed to update person
+          schema:
+            type: string
+      summary: Обновление данных пользователя
+      tags:
+      - person
+schemes:
+- http
+swagger: "2.0"

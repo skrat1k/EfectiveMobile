@@ -2,14 +2,16 @@ package handlers
 
 import (
 	"EfectiveMobile/internal/dto"
-	"EfectiveMobile/internal/models"
 	"EfectiveMobile/internal/services"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
 
+	_ "EfectiveMobile/docs" // Подключаем документацию
+
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 const (
@@ -25,14 +27,24 @@ type PersonHandler struct {
 	Log           *slog.Logger
 }
 
-func (ph *PersonHandler) Register(router *chi.Mux) {
+func (ph *PersonHandler) Register(router *chi.Mux, serverInfo string) {
 	router.Get(getPersonByID, ph.GetPersonsByID)
 	router.Get(getPersonByParams, ph.GetPersonsByParams)
 	router.Delete(deletePersonByID, ph.DeletePersonById)
 	router.Put(updatePerson, ph.UpdatePerson)
 	router.Post(createPerson, ph.CreatePerson)
+	router.Get("/swagger/*", httpSwagger.WrapHandler)
 }
 
+// @Summary Получение информации о человеке по ID
+// @Description Возвращает данные о человеке по его идентификатору
+// @Tags person
+// @Produce json
+// @Param id path int true "ID человека"
+// @Success 200 {object} models.Person
+// @Failure 400 {string} string "Invalid ID"
+// @Failure 500 {string} string "Failed to get person"
+// @Router /api/v1/person/get/{id} [get]
 func (ph *PersonHandler) GetPersonsByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -52,9 +64,33 @@ func (ph *PersonHandler) GetPersonsByID(w http.ResponseWriter, r *http.Request) 
 	ph.Log.Debug("Encoded person to json", slog.Int("id", id))
 }
 
+// @Summary Получение отфильтрованной информации о людях
+// @Description Возвращает отфильтрованные данные о людях
+// @Description Операторы для фильтрации значений:
+// @Description - `is:X` — значение равно X
+// @Description - `isnt:X` — значение не равно X
+// @Description - `ls:X` — значение меньше X (только для age)
+// @Description - `mt:X` — значение больше X (только для age)
+// @Description - Пример:
+// @Description - `age=mt:X` — значение больше X
+// @Description - `name=is:X` — значение равно X
+// @Tags person
+// @Produce json
+// @Param name query string false "Имя пользователя"
+// @Param surname query string false "Фамилия пользователя"
+// @Param patronymic query string false "Отчество пользователя"
+// @Param gender query string false "Пол пользователя"
+// @Param nationality query string false "Национальность пользователя"
+// @Param age query int false "Возраст пользователя"
+// @Param limit query int false "Лимит записей (по умолчанию 10)"
+// @Param offset query int false "Смещение записей"
+// @Success 200 {array} models.Person
+// @Failure 400 {string} string "Invalid request parameters"
+// @Failure 500 {string} string "Failed to get persons"
+// @Router /api/v1/person/get [get]
 func (ph *PersonHandler) GetPersonsByParams(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	filters := dto.Filters{}
+	filters := dto.Filters{ByLimit: 10}
 	filters.ByName = queryParams.Get("name")
 	filters.BySurname = queryParams.Get("surname")
 	filters.ByPatronymic = queryParams.Get("patronymic")
@@ -95,8 +131,18 @@ func (ph *PersonHandler) GetPersonsByParams(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(persons)
 }
 
+// @Summary Создание нового пользователя
+// @Description Создает нового пользователя с переданными данными
+// @Tags person
+// @Accept json
+// @Produce json
+// @Param person body dto.CreatePerson true "Данные пользователя для создания"
+// @Success 201 {object} int "ID нового пользователя"
+// @Failure 400 {string} string "Invalid JSON"
+// @Failure 500 {string} string "Failed to create person"
+// @Router /api/v1/person/create [post]
 func (ph *PersonHandler) CreatePerson(w http.ResponseWriter, r *http.Request) {
-	var person models.Person
+	var person dto.CreatePerson
 
 	err := json.NewDecoder(r.Body).Decode(&person)
 	if err != nil {
@@ -122,6 +168,15 @@ func (ph *PersonHandler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Удаление пользователя по ID
+// @Description Удаляет пользователя по переданному ID
+// @Tags person
+// @Produce json
+// @Param id path int true "ID пользователя"
+// @Success 204 {string} string "User successfully deleted"
+// @Failure 400 {string} string "Invalid ID"
+// @Failure 500 {string} string "Failed to delete person"
+// @Router /api/v1/person/delete/{id} [delete]
 func (ph *PersonHandler) DeletePersonById(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -141,6 +196,16 @@ func (ph *PersonHandler) DeletePersonById(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary Обновление данных пользователя
+// @Description Обновляет данные пользователя с переданными новыми данными
+// @Tags person
+// @Accept json
+// @Produce json
+// @Param person body dto.PersonUpdate true "Новые данные пользователя"
+// @Success 204 {string} string "User successfully updated"
+// @Failure 400 {string} string "Invalid JSON"
+// @Failure 500 {string} string "Failed to update person"
+// @Router /api/v1/person/update [put]
 func (ph *PersonHandler) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 	newData := dto.PersonUpdate{}
 	err := json.NewDecoder(r.Body).Decode(&newData)
