@@ -8,6 +8,7 @@ import (
 	"EfectiveMobile/internal/services"
 	"EfectiveMobile/pkg/logger"
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -58,13 +59,13 @@ func main() {
 
 	router := chi.NewRouter()
 
-	pr := &repositories.PersonRepo{DB: conn}
+	pr := &repositories.PersonRepo{DB: conn, Log: log}
 	ps := &services.PersonService{PersonRepo: pr, Log: log}
 	ph := handlers.PersonHandler{PersonService: ps, Log: log}
 
 	ph.Register(router)
 
-	err = http.ListenAndServe(":8083", router)
+	err = http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort), router)
 	if err != nil {
 		log.Error("Crashed server", slog.String("error", err.Error()))
 		panic(err)

@@ -46,8 +46,10 @@ func (ps *PersonService) GetPersonsByParams(filters dto.Filters) ([]models.Perso
 		switch validate[0] {
 		case operatorIs:
 			params = append(params, fmt.Sprintf("AND name = %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'name is'")
 		case operatorIsnt:
 			params = append(params, fmt.Sprintf("AND name != %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'name is not'")
 		default:
 			return nil, fmt.Errorf("invalid name param")
 		}
@@ -57,8 +59,10 @@ func (ps *PersonService) GetPersonsByParams(filters dto.Filters) ([]models.Perso
 		switch validate[0] {
 		case operatorIs:
 			params = append(params, fmt.Sprintf("AND surname = %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'surname is'")
 		case operatorIsnt:
 			params = append(params, fmt.Sprintf("AND surname != %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'surname is not'")
 		default:
 			return nil, fmt.Errorf("invalid surname param")
 		}
@@ -68,8 +72,10 @@ func (ps *PersonService) GetPersonsByParams(filters dto.Filters) ([]models.Perso
 		switch validate[0] {
 		case operatorIs:
 			params = append(params, fmt.Sprintf("AND patronymic = %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'patronymic is'")
 		case operatorIsnt:
 			params = append(params, fmt.Sprintf("AND patronymic != %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'patronymic is not'")
 		default:
 			return nil, fmt.Errorf("invalid patronymic param")
 		}
@@ -79,12 +85,16 @@ func (ps *PersonService) GetPersonsByParams(filters dto.Filters) ([]models.Perso
 		switch validate[0] {
 		case operatorIs:
 			params = append(params, fmt.Sprintf("AND age = %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'age is'")
 		case operatorIsnt:
 			params = append(params, fmt.Sprintf("AND age != %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'age is not'")
 		case operatorLs:
 			params = append(params, fmt.Sprintf("AND age < %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'age less'")
 		case operatorMt:
 			params = append(params, fmt.Sprintf("AND age > %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'age more'")
 		default:
 			return nil, fmt.Errorf("invalid age param")
 		}
@@ -94,8 +104,10 @@ func (ps *PersonService) GetPersonsByParams(filters dto.Filters) ([]models.Perso
 		switch validate[0] {
 		case operatorIs:
 			params = append(params, fmt.Sprintf("AND gender = %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'gender is'")
 		case operatorIsnt:
 			params = append(params, fmt.Sprintf("AND gender != %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'gender is not'")
 		default:
 			return nil, fmt.Errorf("invalid gender param")
 		}
@@ -105,17 +117,21 @@ func (ps *PersonService) GetPersonsByParams(filters dto.Filters) ([]models.Perso
 		switch validate[0] {
 		case operatorIs:
 			params = append(params, fmt.Sprintf("AND nationality = %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'nationality is'")
 		case operatorIsnt:
 			params = append(params, fmt.Sprintf("AND nationality != %s", validate[1]))
+			ps.Log.Debug("added filter parametr 'nationality is not'")
 		default:
 			return nil, fmt.Errorf("invalid nationality param")
 		}
 	}
 	if filters.ByLimit != 0 {
 		params = append(params, fmt.Sprintf("LIMIT %d", filters.ByLimit))
+		ps.Log.Debug("added filter parametr 'limit'", slog.Int("limit", filters.ByLimit))
 	}
 	if filters.ByOffset != 0 {
 		params = append(params, fmt.Sprintf("OFFSET %d", filters.ByOffset))
+		ps.Log.Debug("added filter parametr 'offset'", slog.Int("offset", filters.ByOffset))
 	}
 	filter := strings.Join(params, " ")
 
@@ -132,6 +148,7 @@ func (ps *PersonService) CreatePerson(person *models.Person) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	ps.Log.Debug("get person data from api", slog.Any("person data", userData))
 	person.Age = userData.Age
 	person.Gender = userData.Gender
 	person.Nationality = userData.Nationality
@@ -148,23 +165,30 @@ func (ps *PersonService) UpdatePerson(personDTO *dto.PersonUpdate) error {
 	if err != nil {
 		return err
 	}
+	ps.Log.Debug("get person to update", slog.Any("person", person))
 
 	if personDTO.Name != "" {
+		ps.Log.Debug("Name requires updated")
 		person.Name = personDTO.Name
 	}
 	if personDTO.Surname != "" {
+		ps.Log.Debug("Surname requires updated")
 		person.Surname = personDTO.Surname
 	}
 	if personDTO.Patronymic != "" {
+		ps.Log.Debug("Patronymic requires updated")
 		person.Patronymic = personDTO.Patronymic
 	}
 	if personDTO.Age != 0 {
+		ps.Log.Debug("Age requires updated")
 		person.Age = personDTO.Age
 	}
 	if personDTO.Gender != "" {
+		ps.Log.Debug("Gender requires updated")
 		person.Gender = personDTO.Gender
 	}
 	if personDTO.Nationality != "" {
+		ps.Log.Debug("Nationality requires updated")
 		person.Nationality = personDTO.Nationality
 	}
 

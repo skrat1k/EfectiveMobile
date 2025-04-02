@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Env      string `yaml:"env" env-required:"true"`
-	Database `yaml:"database"`
+	Env        string `yaml:"env" env-required:"true"`
+	Database   `yaml:"database"`
+	HttpServer `yaml:"httpServer"`
 }
 
 type Database struct {
@@ -19,6 +20,11 @@ type Database struct {
 	Host     string `yaml:"host"`
 	Port     string `yaml:"port"`
 	Name     string `yaml:"name"`
+}
+
+type HttpServer struct {
+	ServerHost string `yaml:"host"`
+	ServerPort string `yaml:"port"`
 }
 
 func MustLoad() (*Config, error) {
