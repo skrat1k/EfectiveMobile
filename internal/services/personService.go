@@ -6,6 +6,7 @@ import (
 	"EfectiveMobile/internal/repositories"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"unicode"
@@ -30,6 +31,7 @@ type userData struct {
 
 type PersonService struct {
 	PersonRepo *repositories.PersonRepo
+	Log        *slog.Logger
 }
 
 func (ps *PersonService) GetPersonsByID(id int) (*models.Person, error) {

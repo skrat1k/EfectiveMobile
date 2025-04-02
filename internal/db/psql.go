@@ -15,10 +15,9 @@ type ConnectionInfo struct {
 	DBName   string
 }
 
-func CreatePsqlConnection(cfg ConnectionInfo) (*pgx.Conn, error) {
-	connectionURL := MakeConnectionURL(cfg)
+func CreatePsqlConnection(cfg string) (*pgx.Conn, error) {
 
-	conn, err := pgx.Connect(context.Background(), connectionURL)
+	conn, err := pgx.Connect(context.Background(), cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -27,5 +26,5 @@ func CreatePsqlConnection(cfg ConnectionInfo) (*pgx.Conn, error) {
 }
 
 func MakeConnectionURL(info ConnectionInfo) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", info.Username, info.Password, info.Host, info.Port, info.DBName)
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", info.Username, info.Password, info.Host, info.Port, info.DBName)
 }

@@ -5,6 +5,7 @@ import (
 	"EfectiveMobile/internal/models"
 	"EfectiveMobile/internal/services"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -21,6 +22,7 @@ const (
 
 type PersonHandler struct {
 	PersonService *services.PersonService
+	Log           *slog.Logger
 }
 
 func (ph *PersonHandler) Register(router *chi.Mux) {
@@ -35,15 +37,19 @@ func (ph *PersonHandler) GetPersonsByID(w http.ResponseWriter, r *http.Request) 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		ph.Log.Error("Cannot get id", slog.String("error", err.Error()))
 		return
 	}
+	ph.Log.Debug("Getting id", slog.Int("id", id))
 
 	person, err := ph.PersonService.GetPersonsByID(id)
 	if err != nil {
-		http.Error(w, "Failed to ", http.StatusInternalServerError)
+		http.Error(w, "Failed to get person", http.StatusInternalServerError)
+		ph.Log.Error("Cannot get person by id", slog.Int("id", id), slog.String("error", err.Error()))
 		return
 	}
 	json.NewEncoder(w).Encode(person)
+	ph.Log.Debug("Encoded person to json", slog.Int("id", id))
 }
 
 func (ph *PersonHandler) GetPersonsByParams(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +67,7 @@ func (ph *PersonHandler) GetPersonsByParams(w http.ResponseWriter, r *http.Reque
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil {
 			http.Error(w, "Invalid limit value", http.StatusBadRequest)
+			ph.Log.Error("Cannot get limit", slog.String("error", err.Error()))
 			return
 		}
 		filters.ByLimit = limit
@@ -71,6 +78,7 @@ func (ph *PersonHandler) GetPersonsByParams(w http.ResponseWriter, r *http.Reque
 		offset, err := strconv.Atoi(offsetStr)
 		if err != nil {
 			http.Error(w, "Invalid offset value", http.StatusBadRequest)
+			ph.Log.Error("Cannot get offset", slog.String("error", err.Error()))
 			return
 		}
 		filters.ByOffset = offset
@@ -93,12 +101,14 @@ func (ph *PersonHandler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&person)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		ph.Log.Error("Cannot decoded person to json", slog.String("error", err.Error()))
 		return
 	}
 
 	id, err := ph.PersonService.CreatePerson(&person)
 	if err != nil {
 		http.Error(w, "Failed to create person", http.StatusInternalServerError)
+		ph.Log.Error("Failed to create person", slog.String("error", err.Error()))
 		return
 	}
 
@@ -107,6 +117,7 @@ func (ph *PersonHandler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(id)
 	if err != nil {
 		http.Error(w, "Falider to encode JSON", http.StatusInternalServerError)
+		ph.Log.Error("Failed to encode JSON", slog.String("error", err.Error()))
 		return
 	}
 }
@@ -115,11 +126,16 @@ func (ph *PersonHandler) DeletePersonById(w http.ResponseWriter, r *http.Request
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		ph.Log.Error("Cannot get id", slog.String("error", err.Error()))
 		return
 	}
+
+	ph.Log.Debug("Getting id", slog.Int("id", id))
+
 	err = ph.PersonService.DeletePersonById(id)
 	if err != nil {
 		http.Error(w, "Failed to delete person", http.StatusInternalServerError)
+		ph.Log.Error("Failed to delete person", slog.String("error", err.Error()))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -130,10 +146,12 @@ func (ph *PersonHandler) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&newData)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		ph.Log.Error("Cannot decoded person to json", slog.String("error", err.Error()))
 	}
 	err = ph.PersonService.UpdatePerson(&newData)
 	if err != nil {
 		http.Error(w, "Failed to update person", http.StatusInternalServerError)
+		ph.Log.Error("Failed to update person", slog.String("error", err.Error()))
 	}
 
 	w.WriteHeader(http.StatusNoContent)

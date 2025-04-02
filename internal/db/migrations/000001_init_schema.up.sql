@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS persons(
     patronymic VARCHAR,
     age INT NOT NULL,
     gender VARCHAR NOT NULL,
-    nationality VARCHAR
+    nationality VARCHAR NOT NULL
 )
