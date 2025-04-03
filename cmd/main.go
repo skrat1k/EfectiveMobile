@@ -17,8 +17,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// TODO Добавить адекватные информативные ошибки, а то щас какая-то тотал хуйня
-
 // @title EffectiveMobile API
 // @version 1.0
 // @description API для обогащений пользовательских данных
@@ -32,6 +30,8 @@ func main() {
 		log.Fatal(err)
 	}
 	log := logger.GetLogger(cfg.Env)
+
+	log.Info("Logger successfully initialized")
 
 	dbConnectionUrl := db.MakeConnectionURL(db.ConnectionInfo{
 		Username: cfg.Username,
@@ -51,13 +51,12 @@ func main() {
 	}
 
 	conn, err := db.CreatePsqlConnection(dbConnectionUrl)
-
 	if err != nil {
 		log.Error("Failed connect to db", slog.String("error", err.Error()))
 		panic(err)
 	}
-
 	defer conn.Close(context.Background())
+	log.Info("Successfully connect to db")
 
 	router := chi.NewRouter()
 
@@ -65,8 +64,9 @@ func main() {
 	ps := &services.PersonService{PersonRepo: pr, Log: log}
 	ph := handlers.PersonHandler{PersonService: ps, Log: log}
 
-	ph.Register(router, fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort))
+	ph.Register(router)
 
+	log.Info("Starting server...", slog.String("Address", fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort)))
 	err = http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort), router)
 	if err != nil {
 		log.Error("Crashed server", slog.String("error", err.Error()))

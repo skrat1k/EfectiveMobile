@@ -8,6 +8,9 @@ definitions:
         type: string
       surname:
         type: string
+    required:
+    - name
+    - surname
     type: object
   dto.PersonUpdate:
     properties:
@@ -111,11 +114,11 @@ paths:
     get:
       description: |-
         Возвращает отфильтрованные данные о людях
-        Операторы для фильтрации значений:
-        - `is:X` — значение равно X
-        - `isnt:X` — значение не равно X
-        - `ls:X` — значение меньше X (только для age)
-        - `mt:X` — значение больше X (только для age)
+        Операторы для фильтрации значений (не распространяется на limit и offset):
+        - `var=is:X` — значение равно X
+        - `var=isnt:X` — значение не равно X
+        - `var=ls:X` — значение меньше X (только для age)
+        - `var=mt:X` — значение больше X (только для age)
         - Пример:
         - `age=mt:X` — значение больше X
         - `name=is:X` — значение равно X
@@ -144,7 +147,7 @@ paths:
         in: query
         name: age
         type: integer
-      - description: Лимит записей (по умолчанию 10)
+      - description: Лимит записей (если не задан - выводятся все подходящие данные)
         in: query
         name: limit
         type: integer

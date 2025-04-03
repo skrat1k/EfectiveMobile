@@ -4,6 +4,7 @@ import (
 	"EfectiveMobile/internal/dto"
 	"EfectiveMobile/internal/services"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	_ "EfectiveMobile/docs" // Подключаем документацию
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -27,13 +29,19 @@ type PersonHandler struct {
 	Log           *slog.Logger
 }
 
-func (ph *PersonHandler) Register(router *chi.Mux, serverInfo string) {
+func (ph *PersonHandler) Register(router *chi.Mux) {
 	router.Get(getPersonByID, ph.GetPersonsByID)
+	ph.Log.Info("Successfully created http route", slog.String("route", getPersonByID))
 	router.Get(getPersonByParams, ph.GetPersonsByParams)
+	ph.Log.Info("Successfully created http route", slog.String("route", getPersonByParams))
 	router.Delete(deletePersonByID, ph.DeletePersonById)
+	ph.Log.Info("Successfully created http route", slog.String("route", deletePersonByID))
 	router.Put(updatePerson, ph.UpdatePerson)
+	ph.Log.Info("Successfully created http route", slog.String("route", updatePerson))
 	router.Post(createPerson, ph.CreatePerson)
+	ph.Log.Info("Successfully created http route", slog.String("route", createPerson))
 	router.Get("/swagger/*", httpSwagger.WrapHandler)
+	ph.Log.Info("Swagger documentation is enabled")
 }
 
 // @Summary Получение информации о человеке по ID
@@ -56,7 +64,7 @@ func (ph *PersonHandler) GetPersonsByID(w http.ResponseWriter, r *http.Request) 
 
 	person, err := ph.PersonService.GetPersonsByID(id)
 	if err != nil {
-		http.Error(w, "Failed to get person", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to get person: %s", err.Error()), http.StatusInternalServerError)
 		ph.Log.Error("Cannot get person by id", slog.Int("id", id), slog.String("error", err.Error()))
 		return
 	}
@@ -66,11 +74,11 @@ func (ph *PersonHandler) GetPersonsByID(w http.ResponseWriter, r *http.Request) 
 
 // @Summary Получение отфильтрованной информации о людях
 // @Description Возвращает отфильтрованные данные о людях
-// @Description Операторы для фильтрации значений:
-// @Description - `is:X` — значение равно X
-// @Description - `isnt:X` — значение не равно X
-// @Description - `ls:X` — значение меньше X (только для age)
-// @Description - `mt:X` — значение больше X (только для age)
+// @Description Операторы для фильтрации значений (не распространяется на limit и offset):
+// @Description - `var=is:X` — значение равно X
+// @Description - `var=isnt:X` — значение не равно X
+// @Description - `var=ls:X` — значение меньше X (только для age)
+// @Description - `var=mt:X` — значение больше X (только для age)
 // @Description - Пример:
 // @Description - `age=mt:X` — значение больше X
 // @Description - `name=is:X` — значение равно X
@@ -82,7 +90,7 @@ func (ph *PersonHandler) GetPersonsByID(w http.ResponseWriter, r *http.Request) 
 // @Param gender query string false "Пол пользователя"
 // @Param nationality query string false "Национальность пользователя"
 // @Param age query int false "Возраст пользователя"
-// @Param limit query int false "Лимит записей (по умолчанию 10)"
+// @Param limit query int false "Лимит записей (если не задан - выводятся все подходящие данные)"
 // @Param offset query int false "Смещение записей"
 // @Success 200 {array} models.Person
 // @Failure 400 {string} string "Invalid request parameters"
@@ -90,7 +98,7 @@ func (ph *PersonHandler) GetPersonsByID(w http.ResponseWriter, r *http.Request) 
 // @Router /api/v1/person/get [get]
 func (ph *PersonHandler) GetPersonsByParams(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	filters := dto.Filters{ByLimit: 10}
+	filters := dto.Filters{}
 	filters.ByName = queryParams.Get("name")
 	filters.BySurname = queryParams.Get("surname")
 	filters.ByPatronymic = queryParams.Get("patronymic")
@@ -122,7 +130,7 @@ func (ph *PersonHandler) GetPersonsByParams(w http.ResponseWriter, r *http.Reque
 
 	persons, err := ph.PersonService.GetPersonsByParams(filters)
 	if err != nil {
-		http.Error(w, "Failed to get persons", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to get person: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -151,9 +159,17 @@ func (ph *PersonHandler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	validate := validator.New()
+	err = validate.Struct(person)
+	if err != nil {
+		http.Error(w, "Validation error: name and surname are required", http.StatusBadRequest)
+		ph.Log.Error("Validation error", slog.String("error", err.Error()))
+		return
+	}
+
 	id, err := ph.PersonService.CreatePerson(&person)
 	if err != nil {
-		http.Error(w, "Failed to create person", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to create person: %s", err.Error()), http.StatusInternalServerError)
 		ph.Log.Error("Failed to create person", slog.String("error", err.Error()))
 		return
 	}
@@ -162,7 +178,7 @@ func (ph *PersonHandler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(id)
 	if err != nil {
-		http.Error(w, "Falider to encode JSON", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to encode JSON: %s", err.Error()), http.StatusInternalServerError)
 		ph.Log.Error("Failed to encode JSON", slog.String("error", err.Error()))
 		return
 	}
@@ -189,7 +205,7 @@ func (ph *PersonHandler) DeletePersonById(w http.ResponseWriter, r *http.Request
 
 	err = ph.PersonService.DeletePersonById(id)
 	if err != nil {
-		http.Error(w, "Failed to delete person", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to delete person: %s", err.Error()), http.StatusInternalServerError)
 		ph.Log.Error("Failed to delete person", slog.String("error", err.Error()))
 		return
 	}
@@ -215,7 +231,7 @@ func (ph *PersonHandler) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 	}
 	err = ph.PersonService.UpdatePerson(&newData)
 	if err != nil {
-		http.Error(w, "Failed to update person", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to update person: %s", err.Error()), http.StatusInternalServerError)
 		ph.Log.Error("Failed to update person", slog.String("error", err.Error()))
 	}
 

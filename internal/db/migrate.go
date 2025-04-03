@@ -29,8 +29,6 @@ func RunMigrations(connectionURL string) error {
 		Path:   filepath.ToSlash(rootPath),
 	}
 
-	fmt.Println("Migrations path:", migrationURL.String()) // Для отладки
-
 	m, err := migrate.New(migrationURL.String(), connectionURL)
 	if err != nil {
 		return fmt.Errorf("failed to create migrations: %w", err)
